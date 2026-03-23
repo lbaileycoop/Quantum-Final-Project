@@ -2,157 +2,311 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-# ----------------------------
-# Basic single-qubit utilities
-# ----------------------------
+# ============================================================
+# Basic 1-qubit states
+# ============================================================
 
 ket0 = np.array([[1.0 + 0j], [0.0 + 0j]])
 ket1 = np.array([[0.0 + 0j], [1.0 + 0j]])
+
+ket_plus = (1 / np.sqrt(2)) * np.array([[1.0 + 0j], [1.0 + 0j]])
+ket_minus = (1 / np.sqrt(2)) * np.array([[1.0 + 0j], [-1.0 + 0j]])
+
+ket_plus_i = (1 / np.sqrt(2)) * np.array([[1.0 + 0j], [1.0j]])
+ket_minus_i = (1 / np.sqrt(2)) * np.array([[1.0 + 0j], [-1.0j]])
+
+NAMED_STATES = {
+    "0": ket0,
+    "1": ket1,
+    "+": ket_plus,
+    "-": ket_minus,
+    "+i": ket_plus_i,
+    "-i": ket_minus_i,
+}
+
+# ============================================================
+# Standard 1-qubit gates / unitaries
+# ============================================================
 
 I = np.eye(2, dtype=complex)
 X = np.array([[0, 1], [1, 0]], dtype=complex)
 Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
 Z = np.array([[1, 0], [0, -1]], dtype=complex)
+H = (1 / np.sqrt(2)) * np.array([[1, 1], [1, -1]], dtype=complex)
+S = np.array([[1, 0], [0, 1j]], dtype=complex)
+T = np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex)
 
-def h_gate():
-    return (1 / np.sqrt(2)) * np.array([[1, 1], [1, -1]], dtype=complex)
-
-def rx(theta):
+def rx(theta: float) -> np.ndarray:
     return np.cos(theta / 2) * I - 1j * np.sin(theta / 2) * X
 
-def ry(theta):
+def ry(theta: float) -> np.ndarray:
     return np.cos(theta / 2) * I - 1j * np.sin(theta / 2) * Y
 
-def rz(theta):
+def rz(theta: float) -> np.ndarray:
     return np.cos(theta / 2) * I - 1j * np.sin(theta / 2) * Z
 
-def normalize(state):
-    return state / np.linalg.norm(state)
+# ============================================================
+# Utility functions
+# ============================================================
 
-def bloch_vector(state):
-    """Return (x,y,z) for a normalized 2x1 statevector."""
+def normalize(state: np.ndarray) -> np.ndarray:
+    norm = np.linalg.norm(state)
+    if norm == 0:
+        raise ValueError("Statevector has zero norm.")
+    return state / norm
+
+def is_unitary(U: np.ndarray, tol: float = 1e-9) -> bool:
+    U = np.asarray(U, dtype=complex)
+    return U.shape == (2, 2) and np.allclose(U.conj().T @ U, I, atol=tol)
+
+def bloch_vector(state: np.ndarray) -> np.ndarray:
+    """
+    Convert a normalized 2x1 statevector into Bloch coordinates (x, y, z).
+    """
     psi = normalize(state)
     x = np.real((psi.conj().T @ X @ psi)[0, 0])
     y = np.real((psi.conj().T @ Y @ psi)[0, 0])
     z = np.real((psi.conj().T @ Z @ psi)[0, 0])
     return np.array([x, y, z], dtype=float)
 
-def measure_z(state, rng=None):
-    """Projective measurement in the Z basis."""
-    if rng is None:
-        rng = np.random.default_rng()
+def format_state(state: np.ndarray, decimals: int = 3) -> str:
+    psi = normalize(state).flatten()
+    a, b = psi[0], psi[1]
+    return f"{np.round(a, decimals)}|0> + {np.round(b, decimals)}|1>"
 
-    psi = normalize(state)
-    p0 = float(np.abs(psi[0, 0]) ** 2)
-    p1 = float(np.abs(psi[1, 0]) ** 2)
+def spherical_to_state(theta: float, phi: float) -> np.ndarray:
+    """
+    |psi> = cos(theta/2)|0> + e^{i phi} sin(theta/2)|1>
+    """
+    return np.array([
+        [np.cos(theta / 2)],
+        [np.exp(1j * phi) * np.sin(theta / 2)]
+    ], dtype=complex)
 
-    outcome = 0 if rng.random() < p0 else 1
-    collapsed = ket0.copy() if outcome == 0 else ket1.copy()
-    return outcome, collapsed, p0, p1
+# ============================================================
+# Bloch sphere visualizer class
+# ============================================================
 
-# ----------------------------
-# Build a demo sequence
-# ----------------------------
+class BlochSphereSimulator:
+    def __init__(self, initial_state: np.ndarray = ket0):
+        self.state = normalize(initial_state.copy())
+        self.history = [self.state.copy()]
+        self.labels = ["init"]
 
-state = ket0.copy()
-states = [state.copy()]
+        self.fig = None
+        self.ax = None
+        self.path_line = None
+        self.vector_artist = None
+        self.point_artist = None
+        self.text_artist = None
+        self.anim = None  # keep reference alive for FuncAnimation
 
-# Example evolution
-for gate in [h_gate(), rz(np.pi / 3), ry(np.pi / 4), rx(np.pi / 5)]:
-    state = gate @ state
-    states.append(state.copy())
+    def set_state(self, state: np.ndarray, label: str = "set_state"):
+        self.state = normalize(state.copy())
+        self.history.append(self.state.copy())
+        self.labels.append(label)
 
-# Measurement step
-outcome, collapsed, p0, p1 = measure_z(state)
-states.append(collapsed.copy())
+    def set_named_state(self, name: str):
+        if name not in NAMED_STATES:
+            raise ValueError(f"Unknown named state '{name}'. Valid: {list(NAMED_STATES.keys())}")
+        self.set_state(NAMED_STATES[name], label=f"|{name}>")
 
-vectors = [bloch_vector(s) for s in states]
+    def apply_unitary(self, U: np.ndarray, label: str = "U"):
+        U = np.asarray(U, dtype=complex)
+        if not is_unitary(U):
+            raise ValueError("Input matrix is not a valid 2x2 unitary.")
+        self.state = normalize(U @ self.state)
+        self.history.append(self.state.copy())
+        self.labels.append(label)
 
-# ----------------------------
-# Plot Bloch sphere
-# ----------------------------
+    def apply_gate(self, gate_name: str, theta: float = None):
+        gate_name = gate_name.upper()
+        if gate_name == "I":
+            self.apply_unitary(I, "I")
+        elif gate_name == "X":
+            self.apply_unitary(X, "X")
+        elif gate_name == "Y":
+            self.apply_unitary(Y, "Y")
+        elif gate_name == "Z":
+            self.apply_unitary(Z, "Z")
+        elif gate_name == "H":
+            self.apply_unitary(H, "H")
+        elif gate_name == "S":
+            self.apply_unitary(S, "S")
+        elif gate_name == "T":
+            self.apply_unitary(T, "T")
+        elif gate_name == "RX":
+            if theta is None:
+                raise ValueError("RX requires theta.")
+            self.apply_unitary(rx(theta), f"Rx({theta:.3f})")
+        elif gate_name == "RY":
+            if theta is None:
+                raise ValueError("RY requires theta.")
+            self.apply_unitary(ry(theta), f"Ry({theta:.3f})")
+        elif gate_name == "RZ":
+            if theta is None:
+                raise ValueError("RZ requires theta.")
+            self.apply_unitary(rz(theta), f"Rz({theta:.3f})")
+        else:
+            raise ValueError("Unsupported gate name.")
 
-fig = plt.figure(figsize=(8, 8))
-ax = fig.add_subplot(111, projection="3d")
-ax.set_box_aspect((1, 1, 1))
+    def measure_z(self, rng=None):
+        """
+        Sample a Z-basis measurement and collapse the state.
+        """
+        if rng is None:
+            rng = np.random.default_rng()
 
-# Sphere surface
-u = np.linspace(0, 2 * np.pi, 80)
-v = np.linspace(0, np.pi, 40)
-xs = np.outer(np.cos(u), np.sin(v))
-ys = np.outer(np.sin(u), np.sin(v))
-zs = np.outer(np.ones_like(u), np.cos(v))
+        psi = normalize(self.state).flatten()
+        p0 = float(np.abs(psi[0]) ** 2)
+        p1 = float(np.abs(psi[1]) ** 2)
+        outcome = 0 if rng.random() < p0 else 1
 
-ax.plot_surface(xs, ys, zs, alpha=0.12, linewidth=0)
+        self.state = ket0.copy() if outcome == 0 else ket1.copy()
+        self.history.append(self.state.copy())
+        self.labels.append(f"measure Z -> {outcome}")
 
-# Axes
-ax.plot([-1, 1], [0, 0], [0, 0])
-ax.plot([0, 0], [-1, 1], [0, 0])
-ax.plot([0, 0], [0, 0], [-1, 1])
+        return outcome, p0, p1
 
-ax.text(1.1, 0, 0, "X")
-ax.text(0, 1.1, 0, "Y")
-ax.text(0, 0, 1.1, "|0>")
-ax.text(0, 0, -1.2, "|1>")
+    def _setup_plot(self, title="Bloch Sphere Simulator"):
+        self.fig = plt.figure(figsize=(8, 8))
+        self.ax = self.fig.add_subplot(111, projection="3d")
+        self.ax.set_box_aspect((1, 1, 1))
 
-ax.set_xlim([-1.2, 1.2])
-ax.set_ylim([-1.2, 1.2])
-ax.set_zlim([-1.2, 1.2])
-ax.set_title("Single-Qubit Bloch Sphere Measurement Demo")
+        # Sphere
+        u = np.linspace(0, 2 * np.pi, 80)
+        v = np.linspace(0, np.pi, 40)
+        xs = np.outer(np.cos(u), np.sin(v))
+        ys = np.outer(np.sin(u), np.sin(v))
+        zs = np.outer(np.ones_like(u), np.cos(v))
+        self.ax.plot_surface(xs, ys, zs, alpha=0.10, linewidth=0)
 
-# Dynamic artists
-traj_x, traj_y, traj_z = [], [], []
-traj_line, = ax.plot([], [], [], lw=2)
-point = ax.scatter([], [], [], s=60)
-arrow = None
+        # Axes
+        self.ax.plot([-1, 1], [0, 0], [0, 0], linewidth=1)
+        self.ax.plot([0, 0], [-1, 1], [0, 0], linewidth=1)
+        self.ax.plot([0, 0], [0, 0], [-1, 1], linewidth=1)
 
-info = ax.text2D(
-    0.02, 0.95,
-    f"Before measurement",
-    transform=ax.transAxes
-)
+        # Labels
+        self.ax.text(1.10, 0, 0, "|+>")
+        self.ax.text(-1.20, 0, 0, "|->")
+        self.ax.text(0, 1.10, 0, "|+i>")
+        self.ax.text(0, -1.20, 0, "|-i>")
+        self.ax.text(0, 0, 1.10, "|0>")
+        self.ax.text(0, 0, -1.18, "|1>")
 
-def update(frame):
-    global arrow
-    vec = vectors[frame]
+        self.ax.set_xlim([-1.2, 1.2])
+        self.ax.set_ylim([-1.2, 1.2])
+        self.ax.set_zlim([-1.2, 1.2])
+        self.ax.set_title(title)
 
-    traj_x.append(vec[0])
-    traj_y.append(vec[1])
-    traj_z.append(vec[2])
+        self.path_line, = self.ax.plot([], [], [], linewidth=2)
+        v0 = bloch_vector(self.history[0])
 
-    traj_line.set_data(traj_x, traj_y)
-    traj_line.set_3d_properties(traj_z)
-
-    # Remove previous arrow
-    if update.arrow_artist is not None:
-        update.arrow_artist.remove()
-
-    update.arrow_artist = ax.quiver(
-        0, 0, 0,
-        vec[0], vec[1], vec[2],
-        length=1.0,
-        normalize=False
-    )
-
-    # Recreate point
-    update.point_artist._offsets3d = ([vec[0]], [vec[1]], [vec[2]])
-
-    if frame < len(vectors) - 1:
-        info.set_text(
-            f"Evolution step {frame}\n"
-            f"P(0) = {p0:.3f}, P(1) = {p1:.3f}"
+        self.point_artist = self.ax.scatter([v0[0]], [v0[1]], [v0[2]], s=60)
+        self.vector_artist = self.ax.quiver(
+            0, 0, 0, v0[0], v0[1], v0[2],
+            length=1.0, normalize=False
         )
-    else:
-        info.set_text(
-            f"Measurement outcome: {outcome}\n"
-            f"P(0) = {p0:.3f}, P(1) = {p1:.3f}"
+
+        self.text_artist = self.ax.text2D(0.02, 0.95, "", transform=self.ax.transAxes)
+        self._refresh_frame(0)
+
+    def _refresh_frame(self, frame_idx: int):
+        vecs = [bloch_vector(s) for s in self.history[:frame_idx + 1]]
+        xs = [v[0] for v in vecs]
+        ys = [v[1] for v in vecs]
+        zs = [v[2] for v in vecs]
+
+        self.path_line.set_data(xs, ys)
+        self.path_line.set_3d_properties(zs)
+
+        current = vecs[-1]
+
+        # redraw quiver
+        if self.vector_artist is not None:
+            self.vector_artist.remove()
+
+        self.vector_artist = self.ax.quiver(
+            0, 0, 0,
+            current[0], current[1], current[2],
+            length=1.0,
+            normalize=False
         )
 
-    return traj_line, update.point_artist, update.arrow_artist, info
+        self.point_artist._offsets3d = ([current[0]], [current[1]], [current[2]])
 
-update.arrow_artist = None
-update.point_artist = ax.scatter([vectors[0][0]], [vectors[0][1]], [vectors[0][2]], s=60)
+        label = self.labels[frame_idx]
+        state_str = format_state(self.history[frame_idx])
+        self.text_artist.set_text(
+            f"Step {frame_idx}: {label}\n"
+            f"State: {state_str}\n"
+            f"Bloch: ({current[0]:.3f}, {current[1]:.3f}, {current[2]:.3f})"
+        )
 
-ani = FuncAnimation(fig, update, frames=len(vectors), interval=1200, repeat=False)
+    def show(self, title="Bloch Sphere Simulator"):
+        self._setup_plot(title=title)
+        plt.show()
 
-plt.show()
+    def animate(self, interval_ms: int = 1200, title="Bloch Sphere Simulator"):
+        self._setup_plot(title=title)
+
+        def update(frame):
+            self._refresh_frame(frame)
+            return self.path_line, self.point_artist, self.vector_artist, self.text_artist
+
+        self.anim = FuncAnimation(
+            self.fig,
+            update,
+            frames=len(self.history),
+            interval=interval_ms,
+            repeat=False
+        )
+        plt.show()
+
+# ============================================================
+# Example usage
+# ============================================================
+
+def demo_named_states():
+    sim = BlochSphereSimulator(ket0)
+    sim.set_named_state("+")
+    sim.set_named_state("-")
+    sim.set_named_state("+i")
+    sim.set_named_state("-i")
+    sim.animate(title="Named States Demo")
+
+def demo_gates():
+    sim = BlochSphereSimulator(ket0)
+    sim.apply_gate("H")
+    sim.apply_gate("RZ", np.pi / 2)
+    sim.apply_gate("RY", np.pi / 3)
+    sim.apply_gate("X")
+    sim.animate(title="Gate Demo")
+
+def demo_custom_unitary():
+    sim = BlochSphereSimulator(ket_plus)
+
+    # Example custom unitary:
+    # U = Rz(pi/4) @ Ry(pi/3)
+    U = rz(np.pi / 4) @ ry(np.pi / 3)
+
+    sim.apply_unitary(U, label="Custom U")
+    sim.animate(title="Custom Unitary Demo")
+
+def demo_measurement():
+    sim = BlochSphereSimulator(ket0)
+    sim.apply_gate("H")
+    sim.apply_gate("RZ", np.pi / 3)
+    outcome, p0, p1 = sim.measure_z()
+    print(f"Measurement outcome: {outcome}, P(0)={p0:.4f}, P(1)={p1:.4f}")
+    sim.animate(title="Measurement Demo")
+
+if __name__ == "__main__":
+    # Choose one:
+    demo_named_states()
+    sim = BlochSphereSimulator(ket0)
+    sim.set_named_state("+")
+    sim.animate()
+    # demo_gates()
+    # demo_custom_unitary()
+    # demo_measurement()
