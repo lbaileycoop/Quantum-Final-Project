@@ -83,6 +83,96 @@ def spherical_to_state(theta: float, phi: float) -> np.ndarray:
         [np.exp(1j * phi) * np.sin(theta / 2)]
     ], dtype=complex)
 
+def unitary_to_axis_angle(U: np.ndarray, tol: float = 1e-9):
+    """
+    Given a 2x2 unitary U, return (axis, angle) such that:
+    U ≈ exp(-i * theta/2 * (n·σ))
+
+    Returns:
+        axis: np.array([nx, ny, nz])
+        theta: float (radians)
+    """
+    U = np.asarray(U, dtype=complex)
+
+    if not is_unitary(U):
+        raise ValueError("Matrix is not unitary.")
+
+    # Step 1: remove global phase
+    detU = np.linalg.det(U)
+    U_su2 = U / np.sqrt(detU)  # now det ≈ 1
+
+    # Step 2: compute angle 
+    trace = np.trace(U_su2)
+    cos_half_theta = np.real(trace) / 2
+    cos_half_theta = np.clip(cos_half_theta, -1.0, 1.0)
+
+    theta = 2 * np.arccos(cos_half_theta)
+
+    # Step 3: compute axis 
+    if abs(np.sin(theta / 2)) < tol:
+        # No rotation (or very small) aka arbitrary axis
+        return np.array([0.0, 0.0, 1.0]), 0.0
+
+    factor = -1j / (2 * np.sin(theta / 2))
+    A = factor * (U_su2 - U_su2.conj().T)
+
+    nx = np.real(A[0, 1] + A[1, 0]) / 2
+    ny = np.real((A[0, 1] - A[1, 0]) / (2j))
+    nz = np.real((A[0, 0] - A[1, 1]) / 2)
+
+    axis = np.array([nx, ny, nz], dtype=float)
+
+    # normalize axis
+    norm = np.linalg.norm(axis)
+    if norm > tol:
+        axis /= norm
+
+    return axis, theta
+
+import ast
+
+def parse_custom_state():
+    """
+    Let user input a custom 1-qubit state like:
+    [1, 1], [0.6, 0.8], [1+1j, 0]
+    Returns a normalized 2x1 statevector.
+    """
+    raw = input("Enter state vector [a, b]: ")
+
+    try:
+        vec = ast.literal_eval(raw)  # safer than eval
+        if len(vec) != 2:
+            raise ValueError("State must have exactly 2 components.")
+
+        state = np.array(vec, dtype=complex).reshape(2, 1)
+        return normalize(state)
+
+    except Exception as e:
+        print("Invalid state input:", e)
+        return None
+    
+def parse_custom_unitary():
+    """
+    Input a 2x2 unitary matrix:
+    [[a,b],[c,d]]
+    """
+    raw = input("Enter 2x2 unitary matrix [[a,b],[c,d]]: ")
+
+    try:
+        U = np.array(ast.literal_eval(raw), dtype=complex)
+
+        if U.shape != (2, 2):
+            raise ValueError("Must be a 2x2 matrix.")
+
+        if not is_unitary(U):
+            raise ValueError("Matrix is not unitary.")
+
+        return U
+
+    except Exception as e:
+        print("Invalid unitary:", e)
+        return None
+
 # ============================================================
 # Bloch sphere visualizer class
 # ============================================================
@@ -111,10 +201,25 @@ class BlochSphereSimulator:
             raise ValueError(f"Unknown named state '{name}'. Valid: {list(NAMED_STATES.keys())}")
         self.set_state(NAMED_STATES[name], label=f"|{name}>")
 
+    # def apply_unitary(self, U: np.ndarray, label: str = "U"):
+    #     U = np.asarray(U, dtype=complex)
+    #     if not is_unitary(U):
+    #         raise ValueError("Input matrix is not a valid 2x2 unitary.")
+    #     self.state = normalize(U @ self.state)
+    #     self.history.append(self.state.copy())
+    #     self.labels.append(label)
     def apply_unitary(self, U: np.ndarray, label: str = "U"):
         U = np.asarray(U, dtype=complex)
         if not is_unitary(U):
             raise ValueError("Input matrix is not a valid 2x2 unitary.")
+
+        axis, theta = unitary_to_axis_angle(U)
+
+        print("\n--- Unitary Interpretation ---")
+        print(f"Rotation angle: {theta:.3f} radians")
+        print(f"Rotation axis: ({axis[0]:.3f}, {axis[1]:.3f}, {axis[2]:.3f})")
+
+        # Apply as before
         self.state = normalize(U @ self.state)
         self.history.append(self.state.copy())
         self.labels.append(label)
@@ -242,7 +347,7 @@ class BlochSphereSimulator:
             f"State: {state_str}\n"
             f"Bloch: ({current[0]:.3f}, {current[1]:.3f}, {current[2]:.3f})"
         )
-
+    '''also showing this'''
     def show(self, title="Bloch Sphere Simulator"):
         self._setup_plot(title=title)
         plt.show()
@@ -261,12 +366,15 @@ class BlochSphereSimulator:
             interval=interval_ms,
             repeat=False
         )
-        plt.show()
+        plt.draw()
+        plt.pause(.001)
+        # plt.show()
 
 # ============================================================
-# Example usage
+# TEST CASES
 # ============================================================
 
+# Test case for differ bases
 def demo_named_states():
     sim = BlochSphereSimulator(ket0)
     sim.set_named_state("+")
@@ -275,6 +383,7 @@ def demo_named_states():
     sim.set_named_state("-i")
     sim.animate(title="Named States Demo")
 
+# Test cases for the Gates
 def demo_gates():
     sim = BlochSphereSimulator(ket0)
     sim.apply_gate("H")
@@ -282,7 +391,9 @@ def demo_gates():
     sim.apply_gate("RY", np.pi / 3)
     sim.apply_gate("X")
     sim.animate(title="Gate Demo")
+    print("ALL TEST CASE PASSED!")
 
+# custome gates
 def demo_custom_unitary():
     sim = BlochSphereSimulator(ket_plus)
 
@@ -301,12 +412,65 @@ def demo_measurement():
     print(f"Measurement outcome: {outcome}, P(0)={p0:.4f}, P(1)={p1:.4f}")
     sim.animate(title="Measurement Demo")
 
+def intro():
+    print("="*16)
+    print("Wellcome to Bloch Sphere viziulations")
+    print("please enter respons like this for starting bases: `+`, `-`, `+i`, `-i`, `0`, `1` ")
+    print("please enter respons like this for Gate you would like to apply, they are case insensative: `H`, `x`, `z`")
+
 if __name__ == "__main__":
+    
     # Choose one:
-    demo_named_states()
-    sim = BlochSphereSimulator(ket0)
-    sim.set_named_state("+")
-    sim.animate()
+    # starting_bases = input("what is your starting bases: ")
+    # gate = input("what gate you would to apply: ")
+    
+    # if starting_bases in NAMED_STATES:
+    #     sim = BlochSphereSimulator(NAMED_STATES[starting_bases])
+    #     # I want to aply a gate not the base 
+    #     sim.apply_gate(f"{gate}")
+    #     sim.animate()
+
+    sim = None
+
+    # state = parse_custom_state()
+
+    # if state is not None:
+    #     sim = BlochSphereSimulator(state)
+
+    # U = parse_custom_unitary()
+
+    # if U is not None:
+    #     sim.apply_unitary(U)
+    #     sim.animate()
+
+    starting_bases = input("starting state: ")
+
+    if starting_bases in NAMED_STATES:
+        sim = BlochSphereSimulator(NAMED_STATES[starting_bases])
+        sim.animate()
+
+        while True:
+            gate = input("enter next gate (or 'q' to quit): ")
+
+            if gate.lower() == "q":
+                break
+
+            if gate.upper() in ["X", "Y", "Z", "H", "S", "T", "I"]:
+                sim.apply_gate(gate)
+            else:
+                print("Unknown or unsupported gate (no angle support yet).")
+                continue
+
+            sim.animate()
+
+
+
+
+
+    # demo_named_states()
+    # sim = BlochSphereSimulator(ket0)
+    # sim.set_named_state("+")
+    # sim.animate()
     # demo_gates()
     # demo_custom_unitary()
     # demo_measurement()
