@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import ast
 
 # ============================================================
 # Basic 1-qubit states
@@ -22,6 +23,16 @@ NAMED_STATES = {
     "-": ket_minus,
     "+i": ket_plus_i,
     "-i": ket_minus_i,
+}
+
+GATE_ALIASES = {
+    "x":"X","paulix":"X",
+    "y":"Y","pauliy":"Y",
+    "z":"Z","pauliz":"Z",
+    "h":"H","hadamard":"H",
+    "s":"S","phase":"S",
+    "t":"T",
+    "i":"I","identity":"I",
 }
 
 # ============================================================
@@ -129,7 +140,6 @@ def unitary_to_axis_angle(U: np.ndarray, tol: float = 1e-9):
 
     return axis, theta
 
-import ast
 
 def parse_custom_state():
     """
@@ -137,7 +147,8 @@ def parse_custom_state():
     [1, 1], [0.6, 0.8], [1+1j, 0]
     Returns a normalized 2x1 statevector.
     """
-    raw = input("Enter state vector [a, b]: ")
+    
+    raw = input("Enter custom state vector [a, b]: ")
 
     try:
         vec = ast.literal_eval(raw)  # safer than eval
@@ -201,13 +212,7 @@ class BlochSphereSimulator:
             raise ValueError(f"Unknown named state '{name}'. Valid: {list(NAMED_STATES.keys())}")
         self.set_state(NAMED_STATES[name], label=f"|{name}>")
 
-    # def apply_unitary(self, U: np.ndarray, label: str = "U"):
-    #     U = np.asarray(U, dtype=complex)
-    #     if not is_unitary(U):
-    #         raise ValueError("Input matrix is not a valid 2x2 unitary.")
-    #     self.state = normalize(U @ self.state)
-    #     self.history.append(self.state.copy())
-    #     self.labels.append(label)
+   
     def apply_unitary(self, U: np.ndarray, label: str = "U"):
         U = np.asarray(U, dtype=complex)
         if not is_unitary(U):
@@ -374,7 +379,7 @@ class BlochSphereSimulator:
 # TEST CASES
 # ============================================================
 
-# Test case for differ bases
+# test case for differ bases
 def demo_named_states():
     sim = BlochSphereSimulator(ket0)
     sim.set_named_state("+")
@@ -383,7 +388,7 @@ def demo_named_states():
     sim.set_named_state("-i")
     sim.animate(title="Named States Demo")
 
-# Test cases for the Gates
+# test cases for the Gates
 def demo_gates():
     sim = BlochSphereSimulator(ket0)
     sim.apply_gate("H")
@@ -412,61 +417,94 @@ def demo_measurement():
     print(f"Measurement outcome: {outcome}, P(0)={p0:.4f}, P(1)={p1:.4f}")
     sim.animate(title="Measurement Demo")
 
+
 def intro():
-    print("="*16)
-    print("Wellcome to Bloch Sphere viziulations")
-    print("please enter respons like this for starting bases: `+`, `-`, `+i`, `-i`, `0`, `1` ")
-    print("please enter respons like this for Gate you would like to apply, they are case insensative: `H`, `x`, `z`")
+    print("="*32)
+    print("Welcome to Bloch Sphere Visualizations\n")
+    print("Enter 'c' for custom state like: [1, 0], [0.6, 0.8], [1+1j, 0]")
+    print("Enter 'r' for named basis:", ", ".join(NAMED_STATES.keys()))
+    print("\nGates:", ", ".join(set(GATE_ALIASES.values())))
+    print("Rotations Gates: rx(pi/2), ry(pi/3), rz(pi)")
+    print("You also enter custom gate by doing [2x2] Matrix `x_gate = [[1,0],[0,1]]` or even sqrt_x gate")
+    print("Type 'help' anytime to see this again.\n")
 
-if __name__ == "__main__":
-    
-    # Choose one:
-    # starting_bases = input("what is your starting bases: ")
-    # gate = input("what gate you would to apply: ")
-    
-    # if starting_bases in NAMED_STATES:
-    #     sim = BlochSphereSimulator(NAMED_STATES[starting_bases])
-    #     # I want to aply a gate not the base 
-    #     sim.apply_gate(f"{gate}")
-    #     sim.animate()
 
-    sim = None
+def choose_initial_state():
+    while True:
+        choice = input("Choose initial state (c/r): ").lower()
 
-    # state = parse_custom_state()
+        if choice == "c":
+            state = parse_custom_state()
+            if state is not None:
+                return state
 
-    # if state is not None:
-    #     sim = BlochSphereSimulator(state)
-
-    # U = parse_custom_unitary()
-
-    # if U is not None:
-    #     sim.apply_unitary(U)
-    #     sim.animate()
-
-    starting_bases = input("starting state: ")
-
-    if starting_bases in NAMED_STATES:
-        sim = BlochSphereSimulator(NAMED_STATES[starting_bases])
-        sim.animate()
-
-        while True:
-            gate = input("enter next gate (or 'q' to quit): ")
-
-            if gate.lower() == "q":
-                break
-
-            if gate.upper() in ["X", "Y", "Z", "H", "S", "T", "I"]:
-                sim.apply_gate(gate)
+        elif choice == "r":
+            name = input(f"Enter basis {list(NAMED_STATES.keys())}: ")
+            if name in NAMED_STATES:
+                return NAMED_STATES[name]
             else:
-                print("Unknown or unsupported gate (no angle support yet).")
+                print("Invalid named state.")
+
+        elif choice == "help":
+            intro()
+
+        else:
+            print("Invalid choice. Enter 'c' or 'r'.")
+
+
+def gate_loop(sim):
+    while True:
+        gate = input("Enter gate (or 'q', 'help'): ")
+
+        if gate.lower() == "q":
+            break
+
+        if gate.lower() == "help":
+            intro()
+            continue
+
+        # basic gates
+        if gate.upper() in ["X", "Y", "Z", "H", "S", "T", "I"]:
+            sim.apply_gate(gate.upper())
+
+        # rotation gates like rx(pi/2)
+        elif gate.lower().startswith(("rx", "ry", "rz")):
+            try:
+                name, angle = gate.split("(")
+                angle = angle.strip(")")
+                theta = eval(angle, {"pi": np.pi})  # safe enough for this use
+
+                sim.apply_gate(name.upper(), theta)
+
+            except Exception:
+                print("Invalid rotation format. Use rx(pi/2) etc.")
                 continue
 
-            sim.animate()
+        # custom gate
+        elif gate.lower() == "custom":
+            U = parse_custom_unitary()
+            if U is not None:
+                sim.apply_unitary(U, label="Custom U")
+
+        else:
+            print("Unknown gate.")
+            continue
+
+        sim.animate()
 
 
 
+if __name__ == "__main__":
+    intro()
 
+    state = choose_initial_state()
+    sim = BlochSphereSimulator(state)
 
+    # show initial state
+    sim.animate()
+    gate_loop(sim)
+
+    # ++++++++++TEST for diffre gates, states++++++++++++
     # demo_named_states()
     # sim = BlochSphereSimulator(ket0)
     # sim.set_named_state("+")
