@@ -99,8 +99,14 @@ All custom gates are checked to ensure they are unitary.
 ## Suggested Grade Based on Rubric
 - Based on the specifications of the rubric, we believe that this project deserves a 100%/A+.
 - We sucessfully completed an "implementation of a tool such as a simulator" as the rubric indicates. 
-- We also took the feedback from our proposal, which is states below, and complted it.
-  - " One piece of feedback is that, in order to implement the arbitrary 1-qubit unitary decomposition, look into the ZYZ-decomposition, where you can approximate an arbitrary 1-qubit unitary as a sequence RZ(theta1); RY(theta2); RZ(theta3)." 
+- In response to the feedback suggestion from our proposal regarding the ZYZ-decomposition $R_Z(\theta_1), R_Y(\theta_2), R_Z(\theta_3)$, we took a different but still valid approach. Our implementation supports arbitrary 1-qubit unitaries by allowing users to input any valid 
+$2 \times 2$ unitary matrix and applying it directly to the statevector via matrix multiplication. 
+This works because any single-qubit operation can be fully represented as a unitary acting on the state, 
+so decomposition is not required for correctness. We also interpret the unitary as a Bloch sphere rotation 
+using an axis-angle representation, i.e., 
+$U \approx e^{-i \frac{\theta}{2} (\mathbf{n} \cdot \sigma)}$, 
+which provides geometric insight into the transformation. However, we did not explicitly compute or apply 
+the ZYZ-decomposition, so while our method is correct, it does not follow the specific structure suggested in the feedback.  
 
 ## Contributions
 - Both Lucas and Diwas contributed to the design and approach of the project equally. We met in person multiple times to work together in order to incorporate all required deliverables. We implemented the initial apprach together. We also editted and finalized our intial code to include eveythign we wanted 
