@@ -454,7 +454,7 @@ def choose_initial_state():
 
 def gate_loop(sim):
     while True:
-        gate = input("Enter gate (or 'q', 'help'): ")
+        gate = input("Enter gate (or 'q', 'help', 'custom'): ")
 
         if gate.lower() == "q":
             break

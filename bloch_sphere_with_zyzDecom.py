@@ -241,6 +241,18 @@ class BlochSphereSimulator:
         self.set_state(NAMED_STATES[name], label=f"|{name}>")
 
 
+    def apply_unitary(self, U: np.ndarray, label: str = "U"):
+        U = np.asarray(U, dtype=complex)
+        if not is_unitary(U):
+            raise ValueError("Input matrix is not a valid 2x2 unitary.")
+
+        # apply transformation
+        self.state = normalize(U @ self.state)
+        self.history.append(self.state.copy())
+        self.labels.append(label)
+
+    # show interpretation
+        self.show_unitary_info(U, label)
     def apply_direct(self, U: np.ndarray, label: str):
         """Apply unitary directly without decomposition."""
         self.state = normalize(U @ self.state)
@@ -519,7 +531,7 @@ def choose_initial_state():
 # ============================================================
 def gate_loop(sim):
     while True:
-        gate = input("Enter gate (or 'q', 'help'): ")
+        gate = input("Enter gate (or 'q', 'help', 'custom'): ")
 
         if gate.lower() == "q":
             break

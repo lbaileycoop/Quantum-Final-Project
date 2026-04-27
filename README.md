@@ -99,14 +99,12 @@ All custom gates are checked to ensure they are unitary.
 ## Suggested Grade Based on Rubric
 - Based on the specifications of the rubric, we believe that this project deserves a 100%/A+.
 - We sucessfully completed an "implementation of a tool such as a simulator" as the rubric indicates. 
-- In response to the feedback suggestion from our proposal regarding the ZYZ-decomposition $R_Z(\theta_1), R_Y(\theta_2), R_Z(\theta_3)$, we took a different but still valid approach. Our implementation supports arbitrary 1-qubit unitaries by allowing users to input any valid 
-$2 \times 2$ unitary matrix and applying it directly to the statevector via matrix multiplication. 
-This works because any single-qubit operation can be fully represented as a unitary acting on the state, 
-so decomposition is not required for correctness. We also interpret the unitary as a Bloch sphere rotation 
-using an axis-angle representation, i.e., 
-$U \approx e^{-i \frac{\theta}{2} (\mathbf{n} \cdot \sigma)}$, 
-which provides geometric insight into the transformation. However, we did not explicitly compute or apply 
-the ZYZ-decomposition, so while our method is correct, it does not follow the specific structure suggested in the feedback.  
+- In response to the feedback suggestion from our proposal regarding the ZYZ decomposition \(R_Z(\theta_1), R_Y(\theta_2), R_Z(\theta_3)\), we implemented full ZYZ decomposition for arbitrary \(2 \times 2\) unitary matrices. Any valid single-qubit unitary can now be expressed as a sequence of three rotations \(R_Z\), \(R_Y\), and \(R_Z\), allowing direct interpretation in terms of standard quantum gates.
+
+However we are not confident with our attempt to compute the ZYZ-decompostions, So we created seperat file that has the ZYZ decompostions, it print on the termnal:
+![Alt text](working_example.png)
+
+- Overall, we belive we hit all the goals of this proejct, including the feedback that was suggested. This readme is our project write-up.  
 
 ## Contributions
-- Both Lucas and Diwas contributed to the design and approach of the project equally. We met in person multiple times to work together in order to incorporate all required deliverables. We implemented the initial apprach together. We also editted and finalized our intial code to include eveythign we wanted 
+- Both Lucas and Diwas contributed to the design and approach of the project equally. We met in person multiple times to work together in order to incorporate all required deliverables. We implemented the initial apprach together. We also editted and finalized our intial code to include eveything we wanted 
