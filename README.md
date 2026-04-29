@@ -1,11 +1,26 @@
 # Project Report - Bloch Sphere Quantum Simulator
 
-## Summary of Results - Technical Content
+## Summary of Results
 
 - The following project is a Python based interactive simulator for visualizing single qubit 
 quantum states and gates on the Bloch sphere. It supports standard quantum gates, rotation gates, 
 measurement, and custom unitary matrices. We believe this project falls in correct scope and does
 explore sufficient technical depth to meet rubric requires.
+
+**Technical Content**
+- We compute Bloch coordinates from statevectors by taking the statevector `ψ` and computing its expectation values with the Pauli matrices `X, Y, Z`. This can be observed in our function named `bloch_vector()`, which follows the following steps listed below to achive the desired result.
+    1. Normalize the given state .
+    2. compute: $x = ψ^†Xψ$, $y = ψ^†Yψ$, $z = ψ^†Zψ$, which gives us the 3D point `(x,y,z)` on the Bloch sphere.
+- We verify unitarity numerically by checking whether a matrix `U` satisfies $U^†U = I$. This can be observed in our function named `is_unitary(U, tol=1e-9)` where we compute `U.conj().T @ U`. Then we compare it to the identity matrix using `np.allclose(...)`. if the matrix matches it is considered unitary.
+- Rotations are implemented using the closed-form rotation formulas, not matrix exponentials. This can be observed in our functions named `rx(theta), ry(theta), rz(theta)`. Here, a rotation is implemented as: $R_X(θ) = cos(θ/2)I − isin(θ/2)X$. Then we directly compute the cosine and sine to build the matrix using the Pauli matrices.
+- We simulate a Z-basis measurement in three steps using our function `measure_z(self, rng=None)`. This function follows the steps listed below to achieve the desired result.
+    1. Compute probabilities: $P(0) = |\alpha|^2$, $P(1) = |\beta|^2$ by taking the squared magnitudes of the statevector components.
+    2. Sample a random outcome by generating a random number and choosing 0 or 1 based on those probabilities.
+    3. Collapse the state:
+        - If outcome = 0 → state becomes $|0\rangle$
+        - If outcome = 1 → state becomes $|1\rangle$
+    4. Store the result by updating the simulator state and adding it to the history for visualization.
+
 
 **Project Features**
 
