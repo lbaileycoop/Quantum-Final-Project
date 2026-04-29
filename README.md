@@ -114,10 +114,23 @@ All custom gates are checked to ensure they are unitary.
 - Export animations
 
 ## Suggested Grade Based on Rubric
-- Based on the specifications of the rubric, we believe that this project deserves a 100% or an A+.
-- We sucessfully completed an "implementation of a tool such as a simulator" as the rubric indicates. 
+- Based on the rubric, we believe this project meets the criteria for full credit (i.e. 100%) due to its technical implementation, interactive functionality, and incorporation of theoretical concepts such as unitary evolution and Bloch sphere representation.
+
+
+- In our proposal we chose to evaluate the success of our project according to two metrics defined below. We believe that we sucesdfulyt achieved both these metrics:
+  1. Mathematical correctness of rotations. We evaluated correctness by comparing the simulator’s final state after applying a gate to the computed state up to a global phase. 
+  2. Functional Interactivity. We will evaluate success by verifying that all required features execute correctly, including standard gates, arbitrary unitary input, state preparation, and arbitrary-basis measurement. This will be assessed using a predefined test suite, in which each feature must run without errors and produce the expected behavior.
+
+
+- We sucessfully completed an "implementation of a tool such as a simulator" as the rubric indicates.
+
+
 - Our initial attempt, the file titled `Bloch-Sphere.py`, implements arbitrary 1-qubit unitaries by allowing users to input any valid $2 \times 2$ unitary matrix and applying it directly to the statevector via matrix multiplication. This works because any single-qubit operation can be fully represented as a unitary acting on the state, so decomposition is not required for correctness. We also interpret the unitary as a Bloch sphere rotation using an axis-angle representation, i.e., $U \approx e^{-i \frac{\theta}{2} (\mathbf{n} \cdot \sigma)}$, which provides geometric insight into the transformation. However, we did not explicitly compute or apply the ZYZ-decomposition, so while our method is correct, it does not follow the specific structure suggested in the feedback.
+
+
 - In response to the feedback suggestion from our proposal regarding the ZYZ decomposition $(R_Z(\theta_1), R_Y(\theta_2), R_Z(\theta_3))$, we have added the file titled `bloch_sphere_with_zyzDecom.py` in an attempt to implement full ZYZ decomposition for arbitrary $(2 \times 2)$ unitary matrices. Any valid single-qubit unitary can now be expressed as a sequence of three rotations $(R_Z), (R_Y), and (R_Z)$, allowing direct interpretation in terms of standard quantum gates.
+
+
 - However, we are not confident with our attempt to compute the ZYZ-decomposition, So we created a seperate file that has the ZYZ decomposition. This seperate file prints in the terminal and has the following output:
 
 ![Alt text](working_example.png)
@@ -126,3 +139,7 @@ All custom gates are checked to ensure they are unitary.
 
 ## Contributions
 - Both Lucas and Diwas contributed to the design and approach of the project equally. We frequently met in person to brainstorm this project. We designed goals and deadlines together to incorporate all required deliverables. We implemented the initial approach together. From here, we built off of our initial approach to incorperate all necessary features. All work was done together.
+
+## Sources
+- https://pmc.ncbi.nlm.nih.gov/articles/PMC10923891/ 
+- https://thequantuminsider.com/2022/06/14/top-63-quantum-computer-simulators/ 
