@@ -8,7 +8,7 @@ measurement, and custom unitary matrices. We believe this project falls in corre
 explore sufficient technical depth to meet rubric requires.
 
 **Technical Content**
-- We compute Bloch coordinates from statevectors by taking the statevector `ψ` and computing its expectation values with the Pauli matrices `X, Y, Z`. This can be observed in our function named `bloch_vector()`, which follows the following steps listed below to achive the desired result.
+- We compute Bloch coordinates from statevectors by taking the statevector `ψ` and computing its expectation values with the Pauli matrices `X, Y, Z`. This can be observed in our function named `bloch_vector()`, which follows the following steps listed below to achieve the desired result.
     1. Normalize the given state .
     2. compute: $x = ψ^†Xψ$, $y = ψ^†Yψ$, $z = ψ^†Zψ$, which gives us the 3D point `(x,y,z)` on the Bloch sphere.
 - We verify unitarity numerically by checking whether a matrix `U` satisfies $U^†U = I$. This can be observed in our function named `is_unitary(U, tol=1e-9)` where we compute `U.conj().T @ U`. Then we compare it to the identity matrix using `np.allclose(...)`. if the matrix matches it is considered unitary.
@@ -116,30 +116,27 @@ All custom gates are checked to ensure they are unitary.
 ## Suggested Grade Based on Rubric
 - Based on the rubric, we believe this project meets the criteria for full credit (i.e. 100%) due to its technical implementation, interactive functionality, and incorporation of theoretical concepts such as unitary evolution and Bloch sphere representation.
 
-
-- In our proposal we chose to evaluate the success of our project according to two metrics defined below. We believe that we sucesdfulyt achieved both these metrics:
+- Our proposal claimed that we would evaluate the success of our project according to two metrics defined below. We believe that we successfully achieved both these metrics:
   1. Mathematical correctness of rotations. We evaluated correctness by comparing the simulator’s final state after applying a gate to the computed state up to a global phase. 
   2. Functional Interactivity. We will evaluate success by verifying that all required features execute correctly, including standard gates, arbitrary unitary input, state preparation, and arbitrary-basis measurement. This will be assessed using a predefined test suite, in which each feature must run without errors and produce the expected behavior.
 
+- In conjunction to completing our proposed metrics, we also successfully completed an "implementation of a tool such as a simulator" as the final project rubric indicates. Our initial attempt, the file titled `Bloch-Sphere.py`, implements arbitrary 1-qubit unitaries by allowing users to input any valid $2 \times 2$ unitary matrix and applying it directly to the statevector via matrix multiplication. This works because any single-qubit operation can be fully represented as a unitary acting on the state, so decomposition is not required for correctness. We also interpret the unitary as a Bloch sphere rotation using an axis-angle representation, i.e., $U \approx e^{-i \frac{\theta}{2} (\mathbf{n} \cdot \sigma)}$, which provides geometric insight into the transformation. While our methods were correct, we did not explicitly compute the ZYZ-decomposition in this particular file, as specified in our proposal feedback.
 
-- We sucessfully completed an "implementation of a tool such as a simulator" as the rubric indicates.
-
-
-- Our initial attempt, the file titled `Bloch-Sphere.py`, implements arbitrary 1-qubit unitaries by allowing users to input any valid $2 \times 2$ unitary matrix and applying it directly to the statevector via matrix multiplication. This works because any single-qubit operation can be fully represented as a unitary acting on the state, so decomposition is not required for correctness. We also interpret the unitary as a Bloch sphere rotation using an axis-angle representation, i.e., $U \approx e^{-i \frac{\theta}{2} (\mathbf{n} \cdot \sigma)}$, which provides geometric insight into the transformation. However, we did not explicitly compute or apply the ZYZ-decomposition, so while our method is correct, it does not follow the specific structure suggested in the feedback.
-
-
-- In response to the feedback suggestion from our proposal regarding the ZYZ decomposition $(R_Z(\theta_1), R_Y(\theta_2), R_Z(\theta_3))$, we have added the file titled `bloch_sphere_with_zyzDecom.py` in an attempt to implement full ZYZ decomposition for arbitrary $(2 \times 2)$ unitary matrices. Any valid single-qubit unitary can now be expressed as a sequence of three rotations $(R_Z), (R_Y), and (R_Z)$, allowing direct interpretation in terms of standard quantum gates.
-
-
-- However, we are not confident with our attempt to compute the ZYZ-decomposition, So we created a seperate file that has the ZYZ decomposition. This seperate file prints in the terminal and has the following output:
+- In response to the feedback suggestion from our proposal regarding the ZYZ decomposition $(R_Z(\theta_1), R_Y(\theta_2), R_Z(\theta_3))$, we have added the file titled `bloch_sphere_with_zyzDecom.py` in an attempt to implement full ZYZ decomposition for arbitrary $(2 \times 2)$ unitary matrices. Any valid single-qubit unitary can now be expressed as a sequence of three rotations $(R_Z), (R_Y), and (R_Z)$, allowing direct interpretation in terms of standard quantum gates. However, while we achieved functional correctness for rotations and interactivity, our implementation of ZYZ decomposition was not fully validated against known analytical results. This means that although the feature works in practice, we cannot guarantee its mathematical correctness in all cases. This reflects a limitation in our evaluation process and highlights an area for future improvement. The picture below shows the terminal output for our ZYZ-decomposition file.
 
 ![Alt text](working_example.png)
 
-- Overall, we believe we hit all the goals of this project, including the feedback that was suggested. 
+- In conclusion, we believe that we met the primary goals that we set for this project and incorporated the feedback that was suggested. We successfully designed and implemented an interactive Bloch sphere simulator that accurately represents single-qubit quantum states and operations, while also connecting the underlying mathematical concepts to a visual and intuitive interface. Our project demonstrates both theoretical understanding and practical implementation, particularly through the use of unitary evolution, rotation operators, and Bloch vector representation. While we achieved functional correctness across all major features, our work on the ZYZ-decomposition highlighted the challenges involved in extending theoretical results into fully validated implementations. Overall, this project allowed us to explore the topic with sufficient technical depth, improve our understanding of quantum computing concepts, and develop a working tool that aligns with the scope and expectations outlined in the final project rubric.
 
 ## Contributions
-- Both Lucas and Diwas contributed to the design and approach of the project equally. We frequently met in person to brainstorm this project. We designed goals and deadlines together to incorporate all required deliverables. We implemented the initial approach together. From here, we built off of our initial approach to incorperate all necessary features. All work was done together.
+- Both Lucas and Diwas contributed to the design and approach of the project equally. We frequently met in person to brainstorm this project. We designed goals and deadlines together to incorporate all required deliverables. We implemented the initial approach together. From here, we built off of our initial approach to incorporate all necessary features. All work was done together.
 
 ## Sources
-- https://pmc.ncbi.nlm.nih.gov/articles/PMC10923891/ 
-- https://thequantuminsider.com/2022/06/14/top-63-quantum-computer-simulators/ 
+- https://github.com/MonitSharma/Quantum-Codebooks/blob/main/QuTiP%20Codebooks/Visualizations/Bloch_Sphere_Animation.ipynb  
+  - We used this source as a reference for implementing a basic Bloch sphere visualization in Python, which we then expanded upon to build our interactive simulator.
+- https://pmc.ncbi.nlm.nih.gov/articles/PMC10923891/  
+  - This source helped strengthen our understanding of different types of quantum simulators and their applications. It primarily informed our presentation, but is included here as a supporting reference.
+- https://thequantuminsider.com/2022/06/14/top-63-quantum-computer-simulators/  
+  - This source provided additional context on existing quantum simulators and helped us position our project within the broader landscape of available tools.
+- Course lecture materials  
+  - The mathematical concepts used in this project, including Bloch sphere representation, unitary operations, and single-qubit rotations, were solidified through in-class lectures and course materials.
