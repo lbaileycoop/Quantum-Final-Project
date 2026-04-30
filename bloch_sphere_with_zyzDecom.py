@@ -110,7 +110,7 @@ def unitary_to_axis_angle(U: np.ndarray, tol: float = 1e-9):
 
     # Step 1: remove global phase
     detU = np.linalg.det(U)
-    U_su2 = U / np.sqrt(detU)  # now det ≈ 1
+    U_su2 = U / np.sqrt(detU)
 
     # Step 2: compute angle 
     trace = np.trace(U_su2)
@@ -121,7 +121,6 @@ def unitary_to_axis_angle(U: np.ndarray, tol: float = 1e-9):
 
     # Step 3: compute axis 
     if abs(np.sin(theta / 2)) < tol:
-        # No rotation (or very small) aka arbitrary axis
         return np.array([0.0, 0.0, 1.0]), 0.0
 
     factor = -1j / (2 * np.sin(theta / 2))
@@ -151,7 +150,7 @@ def parse_custom_state():
     raw = input("Enter custom state vector [a, b]: ")
 
     try:
-        vec = ast.literal_eval(raw)  # safer than eval
+        vec = ast.literal_eval(raw)
         if len(vec) != 2:
             raise ValueError("State must have exactly 2 components.")
 
@@ -192,7 +191,7 @@ def zyz_decomposition(U: np.ndarray):
     if not is_unitary(U):
         raise ValueError("Matrix must be unitary.")
 
-    # remove global phase (VERY IMPORTANT)
+    # remove global phase
     detU = np.linalg.det(U)
     U = U / np.sqrt(detU)
 
@@ -228,7 +227,7 @@ class BlochSphereSimulator:
         self.vector_artist = None
         self.point_artist = None
         self.text_artist = None
-        self.anim = None  # keep reference alive for FuncAnimation
+        self.anim = None
 
     def set_state(self, state: np.ndarray, label: str = "set_state"):
         self.state = normalize(state.copy())
@@ -447,7 +446,6 @@ class BlochSphereSimulator:
         )
         plt.draw()
         plt.pause(.001)
-        # plt.show()
 
 # ============================================================
 # TEST CASES
